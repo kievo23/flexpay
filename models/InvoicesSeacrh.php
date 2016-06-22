@@ -19,7 +19,7 @@ class InvoicesSeacrh extends Invoices
     {
         return [
             [['id'], 'integer'],
-            [['user_id', 'amount', 'for_the_month', 'collected'], 'safe'],
+            [['user_id', 'amount', 'interest','for_the_month', 'collected'], 'safe'],
         ];
     }
 
@@ -61,6 +61,7 @@ class InvoicesSeacrh extends Invoices
 
         $query->andFilterWhere(['like', 'user_id', $this->user_id])
             ->andFilterWhere(['like', 'amount', $this->amount])
+            ->andFilterWhere(['like', 'interest', $this->interest])
             ->andFilterWhere(['like', 'for_the_month', $this->for_the_month])
             ->andFilterWhere(['like', 'collected', $this->collected]);
 

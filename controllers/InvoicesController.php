@@ -42,10 +42,25 @@ class InvoicesController extends Controller
         $invoice->user_id = yii::$app->user->identity->id;
         $invoice->user_id_to = $data['user_id'];
         $invoice->amount = $data['amount'];
-        $invoice->for_the_month = $data['for_the_month'];
+        $invoice->for_the_month = $data['for_the_year'].'-'.$data['for_the_month'].'-00';
         $invoice->save(false);
+
+        $user = Auth::find()
+            ->where(['id'=> $data['user_id']])
+            ->one();
+
+        $MpesaRecord = Mpesa::find()
+            ->where("product_code LIKE '".$user->username."%'
+                AND invoiced = ''")
+            ->all();
+
+        foreach ($MpesaRecord as $key => $value) {
+            $value->invoiced = $invoice->id;
+            $value->save();
+        }
         //print_r($invoice);
-        return $this->redirect(['invoices','id'=>$data['user_id']]);
+        print_r($data);
+        //return $this->redirect(['invoices','id'=>$data['user_id']]);
     }
 
     public function actionPrint($amount,$user_id,$year,$month){
@@ -57,7 +72,6 @@ class InvoicesController extends Controller
 	                     (user_id = ".$data['user_id'].")
 	                     AND 
 	                     for_the_month =".$data['year']."-".$data['month']."-00")
-	                     
 	            ->one();
         }else{
         	$record = Invoices::find()
@@ -75,13 +89,8 @@ class InvoicesController extends Controller
             ->where(['id'=> $data['user_id']])
             ->one();
 
-        $MpesaRecord = Mpesa::find()
-            ->where("product_code LIKE '".$user->username."%'
-                AND transaction_timestamp LIKE '".$data['year']."-".$data['month']."%'")
-            ->all();
-
         $q = 'select * from mpesa where product_code LIKE "'.$user->username.'%"
-                AND transaction_timestamp LIKE  "'.$data['year']."-".$data['month'].'%"';
+                AND invoiced = "'.$data['invoice_no'].'"';
         $sql = Yii::$app->db->createCommand($q)->queryAll();
         $count = count($sql);
 
@@ -107,15 +116,11 @@ class InvoicesController extends Controller
         $dataProvider = $searchModel->search(Yii::$app->request->queryParams);
         if(yii::$app->user->identity->category == 'admin'){
             $merchant = Auth::findOne($id);
-            $q = 'select sum(m.amount) as total ,p.flexpay_price - sum(m.amount) AS balance,
-                     ADDDATE(c.date,INTERVAL p.installments DAY) AS DueDate,
-                     YEAR( m.transaction_timestamp ) as yearg, MONTH( m.transaction_timestamp ) as monthg 
-                     from customer c
-                     join product p on c.code = p.code
-                     join mpesa m on c.phone = m.sender_phone
-                     where m.status = 0
-                     and c.code like "'.$merchant->username.'%"
-                     GROUP BY YEAR( m.transaction_timestamp ) , MONTH( m.transaction_timestamp ) DESC 
+            $q = 'SELECT SUM( m.amount ) AS total, YEAR( m.transaction_timestamp ) AS yearg, MONTH( m.transaction_timestamp ) AS monthg, m.invoiced as invoice_no
+                FROM mpesa m
+                JOIN product p ON p.code = m.product_code
+                WHERE m.product_code LIKE  "'.$merchant->username.'%"
+                GROUP BY invoiced DESC 
                     ';
             $sql = Yii::$app->db->createCommand($q)->queryAll();
             $count = count($sql);
@@ -146,15 +151,11 @@ class InvoicesController extends Controller
         $dataProvider = $searchModel->search(Yii::$app->request->queryParams);
 
         if(yii::$app->user->identity->category == 'merchant'){
-            $q = 'select sum(m.amount) as total ,p.flexpay_price - sum(m.amount) AS balance,
-                     ADDDATE(c.date,INTERVAL p.installments DAY) AS DueDate,
-                     YEAR( m.transaction_timestamp ) as yearg, MONTH( m.transaction_timestamp ) as monthg 
-                     from customer c
-                     join product p on c.code = p.code
-                     join mpesa m on c.phone = m.sender_phone
-                     where m.status = 0
-                     and c.code like "'.yii::$app->user->identity->username.'%"
-                     GROUP BY YEAR( m.transaction_timestamp ) , MONTH( m.transaction_timestamp ) DESC 
+            $q = 'SELECT SUM( m.amount ) AS total, YEAR( m.transaction_timestamp ) AS yearg, MONTH( m.transaction_timestamp ) AS monthg, m.invoiced as invoice_no
+                    FROM mpesa m
+                    JOIN product p ON p.code = m.product_code
+                    WHERE m.product_code LIKE  "'.yii::$app->user->identity->username.'%"
+                    GROUP BY invoiced DESC 
                     ';
             $sql = Yii::$app->db->createCommand($q)->queryAll();
             $count = count($sql);

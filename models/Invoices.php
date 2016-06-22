@@ -29,8 +29,8 @@ class Invoices extends \yii\db\ActiveRecord
     public function rules()
     {
         return [
-            [['user_id', 'user_id_to', 'amount', 'for_the_month', 'collected'], 'required'],
-            [['user_id', 'user_id_to', 'amount', 'for_the_month', 'collected'], 'string', 'max' => 255]
+            [['user_id', 'user_id_to', 'amount', 'interest', 'for_the_month', 'collected'], 'required'],
+            [['user_id', 'user_id_to', 'amount', 'interest', 'for_the_month', 'collected'], 'string', 'max' => 255]
         ];
     }
 
@@ -44,6 +44,7 @@ class Invoices extends \yii\db\ActiveRecord
             'user_id' => 'User ID',
             'user_id_to' => 'User ID TO',
             'amount' => 'Amount',
+            'interest' => 'Interest',
             'for_the_month' => 'For The Month',
             'collected' => 'Collected',
         ];

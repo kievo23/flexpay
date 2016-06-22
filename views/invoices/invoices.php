@@ -40,6 +40,13 @@ $this->params['breadcrumbs'][] = $this->title;
                         }
                     ],
                     [
+                        'attribute' => 'invoice_no',
+                        'label' => 'Invoice Number',
+                        'value' => function ($model) {
+                            return $model['invoice_no'];
+                        }
+                    ],
+                    [
                         'class' => 'yii\grid\ActionColumn',
                         'template' => '{link}',
                         'buttons' => [
@@ -52,34 +59,27 @@ $this->params['breadcrumbs'][] = $this->title;
                                         'user_id_to'=>$session->get('user_idt')])
                                     ->one();
 
-                                    if(empty($invoiceStatus->for_the_month)){
-                                        if(date("n", strtotime($model['yearg'].'/'.$model['monthg'].'/'.'01')) == date("n")) {
-                                            return "<span><i class='fa fa-fw fa-money'></i> invoice </span>";
-                                        }else{
-                                            return Html::a('<i class="fa fa-fw fa-money"></i> invoice', 
-                                            ['/invoices/createinvoice',
-                                            'amount'=> $model['total'],
-                                            'user_id'=> $session->get('user_idt'),
-                                            'for_the_month'=> $model['yearg'].'-'.$model['monthg'].'-'.'00' ]);
-                                        }                                        
-                                    }else{
+                                    $invoice = Invoices::findOne($model['invoice_no']);
+
+                                    if(!empty($invoice)) {
                                         return "<span><i class='fa fa-fw fa-money'></i> invoiced </span>";
-                                    }                                  
+                                    }else{
+                                        $mons = array(1 => "01", 2 => "02", 3 => "03", 4 => "04", 5 => "05",
+                                         6 => "06", 7 => "07", 8 => "08", 9 => "09", 10 => "10", 11 => "11", 12 => "12");
+                                        return Html::a('<i class="fa fa-fw fa-money"></i> invoice', 
+                                        ['/invoices/createinvoice',
+                                        'amount'=> $model['total'],
+                                        'user_id'=> $session->get('user_idt'),
+                                        'for_the_year'=> $model['yearg'],
+                                        'for_the_month'=>$mons[$model['monthg']]]);
+                                    }                            
                                 }elseif(yii::$app->user->identity->till_no != "212352" && yii::$app->user->identity->category == 'merchant'){
                                     $session = Yii::$app->session;
-                                    $invoiceStatus = Invoices::find()
-                                    ->where(['for_the_month'=>$model['yearg'].'-'.$model['monthg'].'-'.'00',
-                                        'user_id_to'=>yii::$app->user->identity->id])
-                                    ->one();
-
-                                    if(empty($invoiceStatus->for_the_month)){
-                                        if(date("n", strtotime($model['yearg'].'/'.$model['monthg'].'/'.'01')) == date("n")) {
-                                            return "<span><i class='fa fa-fw fa-money'></i>invoice</span>";
-                                        }else{
-                                            return "<span><i class='fa fa-fw fa-money'></i>Has Not Invoiced</span>";
-                                        }                                        
+                                    $invoice = Invoices::findOne($model['invoice_no']);
+                                    if(empty($invoice)){                                        
+                                        return "<span><i class='fa fa-fw fa-money'></i>Has Not Invoiced</span>";
                                     }else{
-                                        return "<span><i class='fa fa-fw fa-money'></i>invoiced</span>";
+                                        return "<span><i class='fa fa-fw fa-money'></i>Invoiced</span>";
                                     }
                                 }                                
                             },
@@ -159,7 +159,8 @@ $this->params['breadcrumbs'][] = $this->title;
                                 return Html::a('Print',['/invoices/print','amount'=>$model['total'],
                                     'user_id'=>$user_id,
                                     'year'=>$model['yearg'],
-                                    'month'=>$month]);                                           
+                                    'month'=>$month,
+                                    'invoice_no'=>$model['invoice_no']]);                                           
                             },
                         ],
                     ],
